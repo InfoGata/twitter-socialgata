@@ -1,0 +1,7 @@
+{
+  "id": "a7f3e9b2c1d4",
+  "name": "Twitter Plugin for SocialGata",
+  "version": "1.0.0",
+  "description": "Browse Twitter/X feeds, trending topics, and user profiles via TWstalker",
+  "script": "dist/index.js"
+}

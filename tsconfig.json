@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+    "module": "esnext",
+    "target": "es2015",
+    "moduleResolution": "bundler",
+    "outDir": "./dist",
+    "strict": true,
+    "lib": ["es2019", "dom"],
+    "paths": {
+      "~/*": ["./src/*"]
+    },
+    "typeRoots": ["./node_modules/@types", "./node_modules/@infogata"]
+  },
+  "include": ["src/**/*"]
+}
