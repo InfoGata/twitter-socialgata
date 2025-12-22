@@ -13,12 +13,13 @@
     "vite-plugin-singlefile": "^2.2.0"
   },
   "scripts": {
-    "build": "vite build --config plugin.vite.config.ts"
+    "build": "tsc && vite build --config plugin.vite.config.ts"
   },
   "devDependencies": {
-    "@infogata/socialgata-plugin-typings": "^0.1.0",
+    "@infogata/socialgata-plugin-typings": "^0.3.0",
     "@preact/preset-vite": "^2.8.2",
     "@tailwindcss/vite": "^4.0.0",
+    "@types/react": "^19.2.7",
     "process": "^0.11.10",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.0.0",
