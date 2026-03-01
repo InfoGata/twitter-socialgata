@@ -11,7 +11,7 @@
     "paths": {
       "~/*": ["./src/*"]
     },
-    "typeRoots": ["./node_modules/@types", "./node_modules/@infogata"]
+    "types": ["@infogata/socialgata-plugin-typings"]
   },
   "include": ["src/**/*"]
 }
