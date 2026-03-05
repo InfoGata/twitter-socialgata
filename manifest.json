@@ -3,5 +3,7 @@
   "name": "Twitter Plugin for SocialGata",
   "version": "1.0.0",
   "description": "Browse Twitter/X feeds, trending topics, and user profiles via TWstalker",
-  "script": "dist/index.js"
+  "script": "dist/index.js",
+  "updateUrl": "https://cdn.jsdelivr.net/gh/InfoGata/twitter-socialgata@latest/manifest.json",
+  "homepage": "https://github.com/InfoGata/twitter-socialgata"
 }
