@@ -1,0 +1,28 @@
+name: Purge jsdelivr Cache
+
+on:
+  workflow_dispatch:
+
+jobs:
+  purge-jsdelivr-cache:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine CDN URLs to Purge
+        id: purge_urls
+        run: |
+          baseUrl="https://cdn.jsdelivr.net/gh/${{ github.repository }}@latest"
+          urls="${baseUrl}/manifest.json"
+
+          for f in $(find dist -type f); do
+            urls+=",${baseUrl}/${f}"
+          done
+
+          echo "urls=${urls}" >> "$GITHUB_OUTPUT"
+
+      - name: Purge CDN Caches
+        uses: egad13/purge-jsdelivr-cache@v1
+        with:
+          url: ${{ steps.purge_urls.outputs.urls }}
