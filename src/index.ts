@@ -1,6 +1,5 @@
 import { MessageType, UiMessageType } from "./shared";
 
-const pluginName = "twitter";
 const TWSTALKER_BASE_URL = "https://twstalker.com";
 
 // Helper function to parse engagement counts like "2K", "1.5M", "362"
@@ -173,7 +172,6 @@ const scrapePostsFromDocument = (doc: Document): Post[] => {
         authorApiId: authorHandle,
         authorAvatar: authorAvatar,
         publishedDate: timeText || undefined,
-        pluginId: pluginName,
         url: mediaUrl,
         thumbnailUrl: mediaType === "image" ? mediaUrl : undefined,
         score: likes,
