@@ -5,5 +5,11 @@
   "description": "Browse Twitter/X feeds, trending topics, and user profiles via TWstalker",
   "script": "dist/index.js",
   "updateUrl": "https://cdn.jsdelivr.net/gh/InfoGata/twitter-socialgata@latest/manifest.json",
-  "homepage": "https://github.com/InfoGata/twitter-socialgata"
+  "homepage": "https://github.com/InfoGata/twitter-socialgata",
+  "siteMatch": [
+    "https://twitter.com/*",
+    "https://x.com/*",
+    "https://twstalker.com/*",
+    "https://xcancel.com/*"
+  ]
 }
