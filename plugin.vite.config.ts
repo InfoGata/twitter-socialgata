@@ -19,7 +19,7 @@ export default defineConfig({
     minify: true,
     target: 'esnext',
     emptyOutDir: false,
-    rollupOptions: {
+    rolldownOptions: {
       input: path.resolve(__dirname, 'src/index.ts'),
       output: {
         entryFileNames: 'index.js',

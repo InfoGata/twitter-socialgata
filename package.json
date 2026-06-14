@@ -10,21 +10,21 @@
     "clsx": "^2.1.0",
     "preact": "^10.11.2",
     "tailwind-merge": "^2.2.0",
-    "vite-plugin-singlefile": "^2.2.0"
+    "vite-plugin-singlefile": "^2.3.3"
   },
   "scripts": {
     "build": "tsc && vite build --config plugin.vite.config.ts"
   },
   "devDependencies": {
     "@infogata/socialgata-plugin-typings": "^0.3.0",
-    "@preact/preset-vite": "^2.8.2",
-    "@tailwindcss/vite": "^4.0.0",
+    "@preact/preset-vite": "^2.10.5",
+    "@tailwindcss/vite": "^4.3.1",
     "@types/react": "^19.2.7",
     "process": "^0.11.10",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.0.0",
     "util": "^0.12.5",
-    "vite": "^6.2.4"
+    "vite": "^8.0.0"
   },
   "browserslist": [
     "last 1 Chrome version"
