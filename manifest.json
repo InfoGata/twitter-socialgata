@@ -11,5 +11,23 @@
     "https://x.com/*",
     "https://twstalker.com/*",
     "https://xcancel.com/*"
+  ],
+  "redirects": [
+    {
+      "pattern": "https://twitter.com/:userId((?!(?:home|explore|notifications|messages|settings|search|compose|hashtag|intent|i|login|logout|signup|share|about|tos|privacy|account)$)[^/?#]+)",
+      "path": "/user/:userId"
+    },
+    {
+      "pattern": "https://x.com/:userId((?!(?:home|explore|notifications|messages|settings|search|compose|hashtag|intent|i|login|logout|signup|share|about|tos|privacy|account)$)[^/?#]+)",
+      "path": "/user/:userId"
+    },
+    {
+      "pattern": "https://twstalker.com/:userId((?!(?:search|trending|trends|login|signup|about|privacy|terms|contact|hashtag)$)[^/?#]+)",
+      "path": "/user/:userId"
+    },
+    {
+      "pattern": "https://xcancel.com/:userId((?!(?:search|settings|about|i|login)$)[^/?#]+)",
+      "path": "/user/:userId"
+    }
   ]
 }
