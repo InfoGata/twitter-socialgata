@@ -14,19 +14,19 @@
   ],
   "redirects": [
     {
-      "pattern": "https://twitter.com/:userId((?!(?:home|explore|notifications|messages|settings|search|compose|hashtag|intent|i|login|logout|signup|share|about|tos|privacy|account)$)[^/?#]+)",
+      "pattern": "https://twitter.com/:userId((?!(?:home|explore|notifications|messages|settings|search|compose|hashtag|intent|i|login|logout|signup|share|about|tos|privacy|account)$)[a-zA-Z0-9_]+)",
       "path": "/user/:userId"
     },
     {
-      "pattern": "https://x.com/:userId((?!(?:home|explore|notifications|messages|settings|search|compose|hashtag|intent|i|login|logout|signup|share|about|tos|privacy|account)$)[^/?#]+)",
+      "pattern": "https://x.com/:userId((?!(?:home|explore|notifications|messages|settings|search|compose|hashtag|intent|i|login|logout|signup|share|about|tos|privacy|account)$)[a-zA-Z0-9_]+)",
       "path": "/user/:userId"
     },
     {
-      "pattern": "https://twstalker.com/:userId((?!(?:search|trending|trends|login|signup|about|privacy|terms|contact|hashtag)$)[^/?#]+)",
+      "pattern": "https://twstalker.com/:userId((?!(?:search|trending|trends|login|signup|about|privacy|terms|contact|hashtag)$)[a-zA-Z0-9_]+)",
       "path": "/user/:userId"
     },
     {
-      "pattern": "https://xcancel.com/:userId((?!(?:search|settings|about|i|login)$)[^/?#]+)",
+      "pattern": "https://xcancel.com/:userId((?!(?:search|settings|about|i|login)$)[a-zA-Z0-9_]+)",
       "path": "/user/:userId"
     }
   ]
