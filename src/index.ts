@@ -2,6 +2,43 @@ import { MessageType, UiMessageType } from "./shared";
 
 const TWSTALKER_BASE_URL = "https://twstalker.com";
 
+// Twitter/X epoch (2010-11-04T01:42:54.657Z) used to decode snowflake IDs
+const TWITTER_EPOCH = 1288834974657;
+
+// Extended user profile returned by getUser. The base User type only carries
+// apiId/name/avatar, so the richer profile fields are added on top of it.
+interface UserProfile extends User {
+  handle?: string;
+  bio?: string;
+  banner?: string;
+  location?: string;
+  website?: string;
+  joinedDate?: string;
+  verified?: boolean;
+  followerCount?: number;
+  followingCount?: number;
+  tweetCount?: number;
+  likeCount?: number;
+}
+
+// Tweet IDs are Twitter snowflakes that encode their creation time. Decoding
+// the ID gives an exact ISO timestamp, which is far better than the relative
+// "2 hours ago" text TWstalker renders (which can't be parsed into a Date).
+const snowflakeToISODate = (tweetId: string): string | undefined => {
+  try {
+    if (!/^\d+$/.test(tweetId)) return undefined;
+    // Only the top 42 bits (the timestamp) matter; the low 22 bits are
+    // discarded, so any Number precision loss falls below the >> 22 shift and
+    // does not affect the resulting millisecond value.
+    const ms = Math.floor(Number(tweetId) / 4194304) + TWITTER_EPOCH;
+    const date = new Date(ms);
+    if (isNaN(date.getTime())) return undefined;
+    return date.toISOString();
+  } catch {
+    return undefined;
+  }
+};
+
 // Helper function to parse engagement counts like "2K", "1.5M", "362"
 function parseEngagementCount(countStr: string): number {
   if (!countStr) return 0;
@@ -127,13 +164,15 @@ const scrapePostsFromDocument = (doc: Document): Post[] => {
 
       body = body.trim();
 
-      // Extract timestamp from the status link
+      // Derive an exact timestamp from the tweet's snowflake ID. Fall back to
+      // the relative text TWstalker shows if the ID can't be decoded.
       const timeLinkText = statusLink.textContent?.trim() || "";
-      const timeText = timeLinkText.match(
+      const relativeTime = timeLinkText.match(
         /^\d+\s*(hours?|minutes?|days?|seconds?)\s*ago|less than a minute ago/i
       )
         ? timeLinkText
         : "";
+      const publishedDate = snowflakeToISODate(postId) || relativeTime || undefined;
 
       // Extract engagement metrics - look for links with numbers
       const metricLinks = postContainer.querySelectorAll('a[href="#"]');
@@ -171,7 +210,7 @@ const scrapePostsFromDocument = (doc: Document): Post[] => {
         authorName: authorName,
         authorApiId: authorHandle,
         authorAvatar: authorAvatar,
-        publishedDate: timeText || undefined,
+        publishedDate: publishedDate,
         url: mediaUrl,
         thumbnailUrl: mediaType === "image" ? mediaUrl : undefined,
         score: likes,
@@ -252,29 +291,111 @@ const getTrendingTopicFeed = async (
   }
 };
 
+// Extract the CSS background-image URL from an inline style attribute
+const extractBackgroundImageUrl = (
+  style: string | null | undefined
+): string | undefined => {
+  if (!style) return undefined;
+  const match = style.match(/background-image\s*:\s*url\(\s*['"]?([^'")]+)['"]?\s*\)/i);
+  return match?.[1];
+};
+
+// Scrape the full profile header (name, handle, bio, banner, stats, ...) from
+// a TWstalker user page document.
+const scrapeUserProfile = (doc: Document, apiId: string): UserProfile => {
+  const profile: UserProfile = {
+    apiId,
+    name: apiId,
+  };
+
+  // Header block that holds the name, handle and bio/meta spans
+  const header = doc.querySelector(".my-dash-dt");
+  const h1 = header?.querySelector("h1") ?? doc.querySelector("h1");
+
+  // Display name: the h1's text with the handle <span> and any verified <svg>
+  // stripped out.
+  if (h1) {
+    const clone = h1.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll("span, svg").forEach((el) => el.remove());
+    const displayName = clone.textContent?.trim();
+    if (displayName) profile.name = displayName;
+
+    // Handle lives in the h1's <span>, e.g. "@damn_jehu"
+    const handleSpan = h1.querySelector("span");
+    const handle = handleSpan?.textContent?.trim().replace(/^@/, "");
+    if (handle) profile.handle = handle;
+
+    // Verified badge is an inline SVG with aria-label="Verified"
+    profile.verified = !!h1.querySelector(
+      'svg[aria-label="Verified"], svg[data-testid="icon-verified"]'
+    );
+  }
+
+  // Bio and meta rows are the direct <span> children of the header (the handle
+  // span is nested inside the h1, so it is excluded here).
+  if (header) {
+    const metaSpans = Array.from(header.children).filter(
+      (el) => el.tagName === "SPAN"
+    ) as HTMLElement[];
+
+    for (const span of metaSpans) {
+      const icon = span.querySelector("i");
+      const text = span.textContent?.trim() || "";
+      if (!text) continue;
+
+      const iconClass = icon?.className || "";
+      if (iconClass.includes("fa-map-marker")) {
+        profile.location = text;
+      } else if (iconClass.includes("fa-calendar")) {
+        profile.joinedDate = text.replace(/^Joined\s*/i, "").trim();
+      } else if (iconClass.includes("fa-link")) {
+        const link = span.querySelector("a");
+        profile.website = link?.getAttribute("href") || text;
+      } else if (!icon && !profile.bio) {
+        // First icon-less span is the bio
+        profile.bio = text;
+      }
+    }
+  }
+
+  // Banner image (inline background-image on the header thumbnail)
+  const bannerEl = doc.querySelector(".dash-bg-image1, .todo-thumb1");
+  profile.banner = extractBackgroundImageUrl(
+    bannerEl?.getAttribute("style")
+  );
+
+  // Avatar: prefer the large profile picture in the header
+  const avatarImg =
+    doc.querySelector(".my-dp-dash img") ||
+    doc.querySelector('img[alt*="Profile Picture"]');
+  profile.avatar = avatarImg?.getAttribute("src") ?? undefined;
+
+  // Stats: Tweets / Followers / Following / Likes
+  const statItems = doc.querySelectorAll(".right-details li");
+  statItems.forEach((li) => {
+    const label = li.querySelector(".dscun-txt")?.textContent?.trim().toLowerCase();
+    const value = li.querySelector(".dscun-numbr")?.textContent?.trim() || "";
+    if (!label) return;
+    const count = parseEngagementCount(value);
+    if (label.includes("tweet")) profile.tweetCount = count;
+    else if (label.includes("follower")) profile.followerCount = count;
+    else if (label.includes("following")) profile.followingCount = count;
+    else if (label.includes("like")) profile.likeCount = count;
+  });
+
+  return profile;
+};
+
 const getUser = async (request: GetUserRequest): Promise<GetUserResponse> => {
   try {
     const url = `${TWSTALKER_BASE_URL}/${request.apiId}`;
     const doc = await fetchHTML(url);
 
-    // Extract user info
-    const nameElement = doc.querySelector("h1");
-    const nameText = nameElement?.textContent?.trim() || "";
-    const nameParts = nameText.split("@");
-    const displayName = nameParts[0]?.trim();
-
-    // Extract avatar
-    const avatarImg = doc.querySelector('img[alt*="Profile Picture"]');
-    const avatar = avatarImg?.getAttribute("src") ?? undefined;
-
+    const user = scrapeUserProfile(doc, request.apiId);
     const posts = scrapePostsFromDocument(doc);
 
     return {
-      user: {
-        apiId: request.apiId,
-        name: displayName || request.apiId,
-        avatar: avatar,
-      },
+      user,
       items: posts,
     };
   } catch (error) {
