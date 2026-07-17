@@ -132,37 +132,48 @@ const scrapePostsFromDocument = (doc: Document): Post[] => {
       );
       const authorAvatar = avatarImg?.getAttribute("src") ?? undefined;
 
-      // Extract post body - find the first substantial paragraph after the heading
-      const allParagraphs = Array.from(postContainer.querySelectorAll("p"));
+      // Extract the post body. TWstalker puts the tweet text in an
+      // `.activity-descp` element, and a quoted tweet is nested as another
+      // `.activity-posts` block inside it. Strip those nested blocks so the
+      // body is only this tweet's own text (otherwise the quoted tweet's text
+      // gets appended and appears duplicated).
       let body = "";
+      const descp = postContainer.querySelector(".activity-descp");
 
-      for (const p of allParagraphs) {
-        const text = p.textContent?.trim() || "";
+      if (descp) {
+        const descpClone = descp.cloneNode(true) as HTMLElement;
+        descpClone
+          .querySelectorAll(".activity-posts, .activity-descp")
+          .forEach((nested) => nested.remove());
+        body = descpClone.textContent?.trim() || "";
+      } else {
+        // Fallback for pages without the expected structure: concatenate the
+        // container's paragraphs, skipping timestamps and nested-tweet text.
+        const allParagraphs = Array.from(postContainer.querySelectorAll("p"));
+        for (const p of allParagraphs) {
+          const text = p.textContent?.trim() || "";
 
-        // Skip if it's just a timestamp
-        if (
-          text.match(
-            /^(less than a minute ago|\d+\s*(hours?|minutes?|days?|seconds?)\s*ago)$/i
-          )
-        ) {
-          continue;
+          if (
+            text.match(
+              /^(less than a minute ago|\d+\s*(hours?|minutes?|days?|seconds?)\s*ago)$/i
+            )
+          ) {
+            continue;
+          }
+
+          const parentDiv = p.closest(
+            'div[class*="quote"], div[class*="retweet"]'
+          );
+          if (parentDiv && parentDiv !== postContainer) {
+            continue;
+          }
+
+          if (text.length > 0) {
+            body += text + "\n";
+          }
         }
-
-        // Skip if it's part of a quoted/nested tweet (has specific parent structure)
-        const parentDiv = p.closest(
-          'div[class*="quote"], div[class*="retweet"]'
-        );
-        if (parentDiv && parentDiv !== postContainer) {
-          continue;
-        }
-
-        // Add non-empty, non-timestamp text
-        if (text.length > 0) {
-          body += text + "\n";
-        }
+        body = body.trim();
       }
-
-      body = body.trim();
 
       // Derive an exact timestamp from the tweet's snowflake ID. Fall back to
       // the relative text TWstalker shows if the ID can't be decoded.
