@@ -58,6 +58,129 @@ const fetchHTML = async (url: string): Promise<Document> => {
 };
 
 // Scrape posts from a document
+// Extract a single Post from an `.activity-posts` container. A quoted tweet is
+// nested as another `.activity-posts` block inside this container's
+// `.activity-descp`; those nested blocks are stripped here so the extracted
+// fields (body, media, metrics) describe only this tweet. The quoted tweet is
+// parsed separately by the caller and attached as `quotedPost`.
+const extractPostFromContainer = (postContainer: Element): Post | undefined => {
+  // Work on a clone with any nested quoted tweets removed so queries below
+  // never pick up the quoted tweet's author, text, image or metrics.
+  const container = postContainer.cloneNode(true) as HTMLElement;
+  container
+    .querySelectorAll(".activity-posts")
+    .forEach((nested) => nested.remove());
+
+  const statusLink = container.querySelector('a[href*="/status/"]');
+  const href = statusLink?.getAttribute("href");
+  const match = href?.match(/\/status\/(\d+)/);
+  if (!match) return undefined;
+  const postId = match[1];
+
+  // Extract author info from the h4 heading
+  const authorHeading = container.querySelector("h4");
+  const authorText = authorHeading?.textContent?.trim() || "";
+
+  let authorName = "";
+  let authorHandle = "";
+
+  if (authorText.includes("@")) {
+    const parts = authorText.split("@");
+    authorName = parts[0]?.trim().replace(/Verified/g, "").trim() || "";
+    authorHandle = parts[1]?.trim().split(/\s/)[0] || ""; // Take only the handle, not any text after it
+  }
+
+  // Skip if we couldn't extract author info
+  if (!authorName && !authorHandle) return undefined;
+
+  // Extract avatar
+  const avatarImg = container.querySelector('img[alt*="Profile Picture"]');
+  const authorAvatar = avatarImg?.getAttribute("src") ?? undefined;
+
+  // Extract the post body. TWstalker puts the tweet text in an
+  // `.activity-descp` element. Nested quoted tweets were already stripped
+  // above, so the descp text is only this tweet's own text.
+  let body = "";
+  const descp = container.querySelector(".activity-descp");
+
+  if (descp) {
+    body = descp.textContent?.trim() || "";
+  } else {
+    // Fallback for pages without the expected structure: concatenate the
+    // container's paragraphs, skipping timestamps.
+    const allParagraphs = Array.from(container.querySelectorAll("p"));
+    for (const p of allParagraphs) {
+      const text = p.textContent?.trim() || "";
+
+      if (
+        text.match(
+          /^(less than a minute ago|\d+\s*(hours?|minutes?|days?|seconds?)\s*ago)$/i
+        )
+      ) {
+        continue;
+      }
+
+      if (text.length > 0) {
+        body += text + "\n";
+      }
+    }
+    body = body.trim();
+  }
+
+  // Derive an exact timestamp from the tweet's snowflake ID. Fall back to
+  // the relative text TWstalker shows if the ID can't be decoded.
+  const timeLinkText = statusLink?.textContent?.trim() || "";
+  const relativeTime = timeLinkText.match(
+    /^\d+\s*(hours?|minutes?|days?|seconds?)\s*ago|less than a minute ago/i
+  )
+    ? timeLinkText
+    : "";
+  const publishedDate = snowflakeToISODate(postId) || relativeTime || undefined;
+
+  // Extract engagement metrics - look for links with numbers
+  const metricLinks = container.querySelectorAll('a[href="#"]');
+  let replies = 0,
+    likes = 0;
+
+  metricLinks.forEach((link, index) => {
+    const text = link.textContent?.trim() || "";
+    const count = parseEngagementCount(text);
+
+    // Typically in order: replies, retweets, likes, views, bookmarks
+    if (index === 0) replies = count;
+    else if (index === 2) likes = count;
+  });
+
+  // Extract media
+  const mediaImg = container.querySelector('img[alt*="tweet picture"]');
+  const mediaVideo = container.querySelector('a[href*=".mp4"]');
+
+  let mediaUrl: string | undefined;
+  let mediaType: "image" | "video" | undefined;
+
+  if (mediaVideo) {
+    mediaUrl = mediaVideo.getAttribute("href") || undefined;
+    mediaType = "video";
+  } else if (mediaImg) {
+    mediaUrl = mediaImg.getAttribute("src") || undefined;
+    mediaType = "image";
+  }
+
+  return {
+    apiId: postId,
+    body: body || undefined,
+    authorName: authorName,
+    authorApiId: authorHandle,
+    authorAvatar: authorAvatar,
+    publishedDate: publishedDate,
+    url: mediaUrl,
+    thumbnailUrl: mediaType === "image" ? mediaUrl : undefined,
+    score: likes,
+    numOfComments: replies,
+    originalUrl: `https://twitter.com/i/status/${postId}`,
+  };
+};
+
 const scrapePostsFromDocument = (doc: Document): Post[] => {
   const posts: Post[] = [];
 
@@ -94,124 +217,24 @@ const scrapePostsFromDocument = (doc: Document): Post[] => {
 
       if (!postContainer) return;
 
-      // Extract author info from the h4 heading
-      const authorHeading = postContainer.querySelector("h4");
-      const authorText = authorHeading?.textContent?.trim() || "";
+      // A quoted tweet is a nested `.activity-posts` block inside another
+      // post's `.activity-descp`. Skip it as a standalone post here — it is
+      // attached to its parent below as `quotedPost`.
+      if (postContainer.parentElement?.closest(".activity-posts")) return;
 
-      let authorName = "";
-      let authorHandle = "";
+      const post = extractPostFromContainer(postContainer);
+      if (!post) return;
 
-      if (authorText.includes("@")) {
-        const parts = authorText.split("@");
-        authorName = parts[0]?.trim().replace(/Verified/g, "").trim() || "";
-        authorHandle = parts[1]?.trim().split(/\s/)[0] || ""; // Take only the handle, not any text after it
-      }
-
-      // Skip if we couldn't extract author info
-      if (!authorName && !authorHandle) return;
-
-      // Extract avatar
-      const avatarImg = postContainer.querySelector(
-        'img[alt*="Profile Picture"]'
-      );
-      const authorAvatar = avatarImg?.getAttribute("src") ?? undefined;
-
-      // Extract the post body. TWstalker puts the tweet text in an
-      // `.activity-descp` element, and a quoted tweet is nested as another
-      // `.activity-posts` block inside it. Strip those nested blocks so the
-      // body is only this tweet's own text (otherwise the quoted tweet's text
-      // gets appended and appears duplicated).
-      let body = "";
+      // Attach the quoted tweet (the first nested `.activity-posts` inside this
+      // post's own `.activity-descp`), if any.
       const descp = postContainer.querySelector(".activity-descp");
-
-      if (descp) {
-        const descpClone = descp.cloneNode(true) as HTMLElement;
-        descpClone
-          .querySelectorAll(".activity-posts, .activity-descp")
-          .forEach((nested) => nested.remove());
-        body = descpClone.textContent?.trim() || "";
-      } else {
-        // Fallback for pages without the expected structure: concatenate the
-        // container's paragraphs, skipping timestamps and nested-tweet text.
-        const allParagraphs = Array.from(postContainer.querySelectorAll("p"));
-        for (const p of allParagraphs) {
-          const text = p.textContent?.trim() || "";
-
-          if (
-            text.match(
-              /^(less than a minute ago|\d+\s*(hours?|minutes?|days?|seconds?)\s*ago)$/i
-            )
-          ) {
-            continue;
-          }
-
-          const parentDiv = p.closest(
-            'div[class*="quote"], div[class*="retweet"]'
-          );
-          if (parentDiv && parentDiv !== postContainer) {
-            continue;
-          }
-
-          if (text.length > 0) {
-            body += text + "\n";
-          }
-        }
-        body = body.trim();
+      const quotedContainer = descp?.querySelector(".activity-posts");
+      if (quotedContainer) {
+        const quotedPost = extractPostFromContainer(quotedContainer);
+        if (quotedPost) post.quotedPost = quotedPost;
       }
 
-      // Derive an exact timestamp from the tweet's snowflake ID. Fall back to
-      // the relative text TWstalker shows if the ID can't be decoded.
-      const timeLinkText = statusLink.textContent?.trim() || "";
-      const relativeTime = timeLinkText.match(
-        /^\d+\s*(hours?|minutes?|days?|seconds?)\s*ago|less than a minute ago/i
-      )
-        ? timeLinkText
-        : "";
-      const publishedDate = snowflakeToISODate(postId) || relativeTime || undefined;
-
-      // Extract engagement metrics - look for links with numbers
-      const metricLinks = postContainer.querySelectorAll('a[href="#"]');
-      let replies = 0,
-        likes = 0;
-
-      metricLinks.forEach((link, index) => {
-        const text = link.textContent?.trim() || "";
-        const count = parseEngagementCount(text);
-
-        // Typically in order: replies, retweets, likes, views, bookmarks
-        if (index === 0) replies = count;
-        else if (index === 2) likes = count;
-      });
-
-      // Extract media
-      const mediaImg = postContainer.querySelector('img[alt*="tweet picture"]');
-      const mediaVideo = postContainer.querySelector('a[href*=".mp4"]');
-
-      let mediaUrl: string | undefined;
-      let mediaType: "image" | "video" | undefined;
-
-      if (mediaVideo) {
-        mediaUrl = mediaVideo.getAttribute("href") || undefined;
-        mediaType = "video";
-      } else if (mediaImg) {
-        mediaUrl = mediaImg.getAttribute("src") || undefined;
-        mediaType = "image";
-      }
-
-      // Always add the post if we have author info - body can be empty for media-only posts
-      posts.push({
-        apiId: postId,
-        body: body || undefined,
-        authorName: authorName,
-        authorApiId: authorHandle,
-        authorAvatar: authorAvatar,
-        publishedDate: publishedDate,
-        url: mediaUrl,
-        thumbnailUrl: mediaType === "image" ? mediaUrl : undefined,
-        score: likes,
-        numOfComments: replies,
-        originalUrl: `https://twitter.com/i/status/${postId}`,
-      });
+      posts.push(post);
     } catch (error) {
       console.error("Error parsing post:", error);
     }
