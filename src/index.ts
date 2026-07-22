@@ -461,6 +461,34 @@ const search = async (request: SearchRequest): Promise<SearchResponse> => {
   }
 };
 
+// Fetch a single tweet along with its replies. TWstalker resolves a tweet by
+// its id regardless of the username segment in the URL, so `/i/status/<id>`
+// works with just the tweet id. The first parsed post is the tweet itself; the
+// rest are replies.
+const getPostComments = async (
+  request: GetCommentsRequest
+): Promise<GetCommentsResponse> => {
+  try {
+    const apiId = request.apiId;
+    if (!apiId) return { items: [] };
+
+    const doc = await fetchHTML(`${TWSTALKER_BASE_URL}/i/status/${apiId}`);
+    const posts = scrapePostsFromDocument(doc);
+
+    // The tweet being viewed; fall back to the first post if the id isn't found.
+    const post = posts.find((p) => p.apiId === apiId) || posts[0];
+
+    const items = posts
+      .filter((p) => p !== post)
+      .map((reply) => ({ ...reply, parentId: apiId }));
+
+    return { items, post };
+  } catch (error) {
+    console.error("Error fetching post comments:", error);
+    return { items: [] };
+  }
+};
+
 // UI Message handling
 const sendMessage = (message: MessageType) => {
   application.postUiMessage(message);
@@ -486,6 +514,7 @@ const init = async () => {
 // Wire up plugin handlers
 application.onGetFeed = getFeed;
 application.onGetUser = getUser;
+application.onGetComments = getPostComments;
 application.onSearch = search;
 application.onGetTrendingTopics = getTrendingTopics;
 application.onGetTrendingTopicFeed = getTrendingTopicFeed;
