@@ -5,22 +5,6 @@ const TWSTALKER_BASE_URL = "https://twstalker.com";
 // Twitter/X epoch (2010-11-04T01:42:54.657Z) used to decode snowflake IDs
 const TWITTER_EPOCH = 1288834974657;
 
-// Extended user profile returned by getUser. The base User type only carries
-// apiId/name/avatar, so the richer profile fields are added on top of it.
-interface UserProfile extends User {
-  handle?: string;
-  bio?: string;
-  banner?: string;
-  location?: string;
-  website?: string;
-  joinedDate?: string;
-  verified?: boolean;
-  followerCount?: number;
-  followingCount?: number;
-  tweetCount?: number;
-  likeCount?: number;
-}
-
 // Tweet IDs are Twitter snowflakes that encode their creation time. Decoding
 // the ID gives an exact ISO timestamp, which is far better than the relative
 // "2 hours ago" text TWstalker renders (which can't be parsed into a Date).
@@ -313,8 +297,8 @@ const extractBackgroundImageUrl = (
 
 // Scrape the full profile header (name, handle, bio, banner, stats, ...) from
 // a TWstalker user page document.
-const scrapeUserProfile = (doc: Document, apiId: string): UserProfile => {
-  const profile: UserProfile = {
+const scrapeUserProfile = (doc: Document, apiId: string): User => {
+  const profile: User = {
     apiId,
     name: apiId,
   };

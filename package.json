@@ -16,7 +16,7 @@
     "build": "tsc && vite build --config plugin.vite.config.ts"
   },
   "devDependencies": {
-    "@infogata/socialgata-plugin-typings": "^0.3.0",
+    "@infogata/socialgata-plugin-typings": "^0.6.0",
     "@preact/preset-vite": "^2.10.5",
     "@tailwindcss/vite": "^4.3.1",
     "@types/react": "^19.2.7",
