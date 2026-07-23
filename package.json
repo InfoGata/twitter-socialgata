@@ -1,6 +1,6 @@
 {
   "name": "twitter-socialgata",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "SocialGata plugin for Twitter/X via TWstalker",
   "author": "",
   "dependencies": {
