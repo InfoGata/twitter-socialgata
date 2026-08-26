@@ -1,7 +1,7 @@
 {
   "name": "twitter-socialgata",
-  "version": "1.6.1",
-  "description": "SocialGata plugin for Twitter/X via TWstalker",
+  "version": "1.7.0",
+  "description": "SocialGata plugin for Twitter/X via Twitter Web Viewer",
   "author": "",
   "dependencies": {
     "@infogata/shadcn-vite-theme-provider": "^0.1.0",
@@ -16,7 +16,7 @@
     "build": "tsc && vite build --config plugin.vite.config.ts"
   },
   "devDependencies": {
-    "@infogata/socialgata-plugin-typings": "^0.7.0",
+    "@infogata/socialgata-plugin-typings": "^0.15.0",
     "@preact/preset-vite": "^2.10.5",
     "@tailwindcss/vite": "^4.3.1",
     "@types/react": "^19.2.7",

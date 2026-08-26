@@ -1,14 +1,23 @@
 import { MessageType, UiMessageType } from "./shared";
 import type { TwitterSource } from "./sources/types";
+import { twitterWebViewer } from "./sources/twitterwebviewer";
 import { twstalker } from "./sources/twstalker";
 
 /**
  * The mirror site this plugin reads from. Each source lives in its own file
  * behind `TwitterSource`, so switching to another one is this single line.
+ *
+ * - `twitterWebViewer` — twitterwebviewer.com's JSON API. Current default.
+ * - `twstalker` — the original TWstalker scraper. Cloudflare has been answering
+ *   every request with a managed challenge since 2026-08, so it returns nothing
+ *   until that changes.
  */
-const SOURCES = { twstalker } satisfies Record<string, TwitterSource>;
+const SOURCES = { twitterWebViewer, twstalker } satisfies Record<
+  string,
+  TwitterSource
+>;
 
-const ACTIVE_SOURCE: TwitterSource = SOURCES.twstalker;
+const ACTIVE_SOURCE: TwitterSource = SOURCES.twitterWebViewer;
 
 // Plugin Methods
 
