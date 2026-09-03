@@ -3,11 +3,11 @@ import type { TwitterSource } from "./types";
 /**
  * Scrapes TWstalker's rendered HTML.
  *
- * Kept as a fallback: as of 2026-08 every request to twstalker.com is answered
- * with a Cloudflare managed challenge, which `application.networkRequest` cannot
- * solve, so all of these return nothing. The parsing below is still correct for
- * the markup TWstalker serves once past the challenge, so this stays here in
- * case that posture changes.
+ * Cloudflare only serves twstalker.com to requests that come from one of its own
+ * pages, so every fetch here depends on the host routing it through a page on
+ * that origin -- see `pageContextRequests` in the manifest. Against a host that
+ * cannot do that, these all fail with the bot-check error from `fetchHTML`
+ * rather than looking like an empty feed.
  */
 
 const TWSTALKER_BASE_URL = "https://twstalker.com";
@@ -60,10 +60,31 @@ const parseHTML = (html: string): Document => {
   return parser.parseFromString(html, "text/html");
 };
 
-// Fetch HTML and parse it
+/**
+ * Fetch HTML and parse it.
+ *
+ * A bot check comes back as a perfectly valid page that simply has none of the
+ * markup the scrapers below look for, so it has to be named here. Left
+ * unchecked it reads downstream as "this feed is empty", which is how the
+ * Cloudflare block spent so long looking like an empty feed rather than a
+ * broken source.
+ */
 const fetchHTML = async (url: string): Promise<Document> => {
   const response = await application.networkRequest(url);
   const html = await response.text();
+
+  if (response.status >= 400) {
+    const challenged =
+      /Just a moment|cf_chl|Attention Required|Verifying your browser/i.test(
+        html.slice(0, 4000)
+      );
+    throw new Error(
+      challenged
+        ? `TWstalker returned a bot check (${response.status}). This host cannot make requests from a twstalker.com page.`
+        : `TWstalker returned ${response.status} for ${url}`
+    );
+  }
+
   return parseHTML(html);
 };
 
@@ -291,7 +312,7 @@ const getTrendingTopics = async (
     };
   } catch (error) {
     console.error("Error fetching trending topics:", error);
-    return { items: [] };
+    throw error;
   }
 };
 
@@ -313,7 +334,7 @@ const getTrendingTopicFeed = async (
     };
   } catch (error) {
     console.error("Error fetching trending topic feed:", error);
-    return { items: [] };
+    throw error;
   }
 };
 
@@ -429,7 +450,7 @@ const getUser = async (request: GetUserRequest): Promise<GetUserResponse> => {
     };
   } catch (error) {
     console.error("Error fetching user:", error);
-    return { items: [] };
+    throw error;
   }
 };
 
@@ -449,7 +470,7 @@ const getFeed = async (_request?: GetFeedRequest): Promise<GetFeedResponse> => {
     return { items: [] };
   } catch (error) {
     console.error("Error fetching feed:", error);
-    return { items: [] };
+    throw error;
   }
 };
 
@@ -466,7 +487,7 @@ const search = async (request: SearchRequest): Promise<SearchResponse> => {
     };
   } catch (error) {
     console.error("Error searching:", error);
-    return { items: [] };
+    throw error;
   }
 };
 
@@ -494,7 +515,7 @@ const getComments = async (
     return { items, post };
   } catch (error) {
     console.error("Error fetching post comments:", error);
-    return { items: [] };
+    throw error;
   }
 };
 

@@ -2,18 +2,15 @@
   "id": "a7f3e9b2c1d4",
   "alias": "twitter",
   "name": "Twitter Plugin for SocialGata",
-  "version": "1.7.0",
-  "description": "Browse Twitter/X feeds, search, and user profiles via Twitter Web Viewer",
+  "version": "1.8.0",
+  "description": "Browse Twitter/X feeds, trending topics, and user profiles via TWstalker",
   "script": "dist/index.js",
   "updateUrl": "https://cdn.jsdelivr.net/gh/InfoGata/twitter-socialgata@latest/manifest.json",
   "homepage": "https://github.com/InfoGata/twitter-socialgata",
   "siteMatch": [
     "https://twitter.com/*",
     "https://x.com/*",
-    "https://twitterwebviewer.com/*",
-    "https://api.twitterwebviewer.com/*",
-    "https://twstalker.com/*",
-    "https://xcancel.com/*"
+    "https://twstalker.com/*"
   ],
   "redirects": [
     {
@@ -27,14 +24,9 @@
     {
       "pattern": "https://twstalker.com/:userId((?!(?:search|trending|trends|login|signup|about|privacy|terms|contact|hashtag)$)[a-zA-Z0-9_]+)",
       "path": "/user/:userId"
-    },
-    {
-      "pattern": "https://xcancel.com/:userId((?!(?:search|settings|about|i|login)$)[a-zA-Z0-9_]+)",
-      "path": "/user/:userId"
-    },
-    {
-      "pattern": "https://twitterwebviewer.com/?user=:userId([a-zA-Z0-9_]+)",
-      "path": "/user/:userId"
     }
+  ],
+  "pageContextRequests": [
+    "https://twstalker.com/*"
   ]
 }

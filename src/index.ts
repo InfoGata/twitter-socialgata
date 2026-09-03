@@ -1,23 +1,25 @@
 import { MessageType, UiMessageType } from "./shared";
 import type { TwitterSource } from "./sources/types";
-import { twitterWebViewer } from "./sources/twitterwebviewer";
 import { twstalker } from "./sources/twstalker";
 
 /**
  * The mirror site this plugin reads from. Each source lives in its own file
  * behind `TwitterSource`, so switching to another one is this single line.
  *
- * - `twitterWebViewer` — twitterwebviewer.com's JSON API. Current default.
- * - `twstalker` — the original TWstalker scraper. Cloudflare has been answering
- *   every request with a managed challenge since 2026-08, so it returns nothing
- *   until that changes.
+ * `twstalker` reads twstalker.com. Cloudflare there only answers requests that
+ * come from one of its own pages, which is why the manifest lists the site under
+ * `pageContextRequests`: the host then issues these fetches from a hidden page
+ * on twstalker.com rather than from the app. Without a host that supports that
+ * (the extension, or the desktop build) every request comes back challenged.
+ *
+ * twitterwebviewer.com was the source for 1.7.x. X Corp had it permanently
+ * discontinued on 2026-08-28, along with Nitter and XCancel, so that source is
+ * gone rather than merely blocked; see git history if another mirror with a JSON
+ * API turns up and the mapping is worth reusing.
  */
-const SOURCES = { twitterWebViewer, twstalker } satisfies Record<
-  string,
-  TwitterSource
->;
+const SOURCES = { twstalker } satisfies Record<string, TwitterSource>;
 
-const ACTIVE_SOURCE: TwitterSource = SOURCES.twitterWebViewer;
+const ACTIVE_SOURCE: TwitterSource = SOURCES.twstalker;
 
 // Plugin Methods
 
