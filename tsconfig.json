@@ -13,5 +13,7 @@
     },
     "types": ["@infogata/socialgata-plugin-typings"]
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  // Tests run under Node (fixtures are read from disk); vitest strips types.
+  "exclude": ["src/test"]
 }

@@ -2,8 +2,8 @@
   "id": "a7f3e9b2c1d4",
   "alias": "twitter",
   "name": "Twitter Plugin for SocialGata",
-  "version": "1.8.0",
-  "description": "Browse Twitter/X feeds, trending topics, and user profiles via TWstalker",
+  "version": "1.9.0",
+  "description": "Browse Twitter/X feeds, search and user profiles via public Nitter instances",
   "script": "dist/index.js",
   "updateUrl": "https://cdn.jsdelivr.net/gh/InfoGata/twitter-socialgata@latest/manifest.json",
   "homepage": "https://github.com/InfoGata/twitter-socialgata",
@@ -27,6 +27,13 @@
     }
   ],
   "pageContextRequests": [
-    "https://twstalker.com/*"
+    "https://twstalker.com/*",
+    "https://nitter.privacyredirect.com/*",
+    "https://nitter.netbub.com/*",
+    "https://nitter.r4fo.com/*",
+    "https://nitter.jaydenha.uk/*",
+    "https://nitter.catsarch.com/*",
+    "https://ruf.st/*",
+    "https://xnologin.com/*"
   ]
 }

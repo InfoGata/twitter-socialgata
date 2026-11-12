@@ -1,25 +1,28 @@
 import { MessageType, UiMessageType } from "./shared";
 import type { TwitterSource } from "./sources/types";
+import { nitter } from "./sources/nitter";
 import { twstalker } from "./sources/twstalker";
 
 /**
  * The mirror site this plugin reads from. Each source lives in its own file
  * behind `TwitterSource`, so switching to another one is this single line.
  *
- * `twstalker` reads twstalker.com. Cloudflare there only answers requests that
- * come from one of its own pages, which is why the manifest lists the site under
- * `pageContextRequests`: the host then issues these fetches from a hidden page
- * on twstalker.com rather than from the app. Without a host that supports that
- * (the extension, or the desktop build) every request comes back challenged.
+ * `nitter` reads public Nitter instances, falling through a list of them as
+ * they fail (see `sources/nitter/client.ts`). Most sit behind a bot check that
+ * only a real page on the instance can pass, so the manifest lists every
+ * instance under `pageContextRequests`.
+ *
+ * `twstalker` was the source until 2026-11-10, when every TWstalker search page
+ * started returning 500. Its trending list still works, so `nitter` borrows
+ * that one handler from it.
  *
  * twitterwebviewer.com was the source for 1.7.x. X Corp had it permanently
- * discontinued on 2026-08-28, along with Nitter and XCancel, so that source is
- * gone rather than merely blocked; see git history if another mirror with a JSON
+ * discontinued on 2026-08-28; see git history if another mirror with a JSON
  * API turns up and the mapping is worth reusing.
  */
-const SOURCES = { twstalker } satisfies Record<string, TwitterSource>;
+const SOURCES = { nitter, twstalker } satisfies Record<string, TwitterSource>;
 
-const ACTIVE_SOURCE: TwitterSource = SOURCES.twstalker;
+const ACTIVE_SOURCE: TwitterSource = SOURCES.nitter;
 
 // Plugin Methods
 
