@@ -18,12 +18,11 @@ import {
  */
 
 /**
- * The default feed. Nitter has no "home" or trending timeline, but its search
- * hands the query straight to Twitter's, operators and all, and `f=tweets`
- * returns the newest first -- so popular recent English tweets that are not
- * replies make a reasonable front page.
+ * No `getFeed`. Nitter has no home or trending timeline, and the feed used to
+ * be a search (`min_faves:1000 lang:en -filter:replies`). When the search
+ * instances broke on 2026-11-21 it showed an empty feed, so it was removed;
+ * trending topics are the way in now.
  */
-const FEED_QUERY = "min_faves:1000 lang:en -filter:replies";
 
 /**
  * Twitter's pagination cursors work on any instance (checked: the same cursor
@@ -67,9 +66,6 @@ const searchTweets = async (query: string, pageInfo?: PageInfo) => {
   };
 };
 
-const getFeed = async (request?: GetFeedRequest): Promise<GetFeedResponse> =>
-  searchTweets(FEED_QUERY, request?.pageInfo);
-
 const search = async (request: SearchRequest): Promise<SearchResponse> =>
   searchTweets(request.query, request.pageInfo);
 
@@ -104,7 +100,6 @@ const getComments = async (
 
 export const nitter: TwitterSource = {
   id: "nitter",
-  getFeed,
   getUser,
   getComments,
   search,

@@ -133,6 +133,17 @@ describe("fetchNitter", () => {
     expect(page.empty).toBe(true);
   });
 
+  it("tries another instance when a search comes back empty", async () => {
+    const [a, b] = INSTANCES.filter((i) => i.search).map((i) => i.origin);
+    stubInstances({
+      [a]: { status: 200, body: fixture("search_empty") },
+      [b]: { status: 200, body: fixture("search_images") },
+    });
+    const page = await fetchNitter("/search?f=tweets&q=x", { needsSearch: true });
+    expect(page.empty).toBe(false);
+    expect(page.instance.origin).toBe(b);
+  });
+
   it("names every instance and its reason when all of them fail", async () => {
     stubInstances({
       [first]: { status: 200, body: fixture("gandalf") },

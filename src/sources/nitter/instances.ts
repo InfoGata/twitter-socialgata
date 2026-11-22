@@ -28,8 +28,15 @@ export interface NitterInstance {
 }
 
 export const INSTANCES: NitterInstance[] = [
+  // Added 2026-11-21: search (operators and cursors too), profiles and tweet
+  // pages all work, with no bot check.
+  { origin: "https://nohup.cz", search: true },
+  // Answers every search with 429 "Instance has been rate limited" as of
+  // 2026-11-21; kept in case that lifts.
   { origin: "https://nitter.privacyredirect.com", search: true },
-  { origin: "https://nitter.netbub.com", search: true },
+  // Search has returned "No items found" for every query since about
+  // 2026-11-21 (its 2026.11.13 build); profiles and tweets still work.
+  { origin: "https://nitter.netbub.com", search: false },
   { origin: "https://nitter.r4fo.com", search: false },
   { origin: "https://nitter.jaydenha.uk", search: false },
   { origin: "https://nitter.catsarch.com", search: false },

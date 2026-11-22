@@ -2,6 +2,12 @@ name: Purge jsdelivr Cache
 
 on:
   workflow_dispatch:
+  # A release is a version tag: jsdelivr's @latest is the highest tag, and
+  # SocialGata fetches a release's script from @<version>. Purging @latest makes
+  # the new manifest visible now rather than when the cache expires.
+  push:
+    tags:
+      - "v*"
 
 jobs:
   purge-jsdelivr-cache:

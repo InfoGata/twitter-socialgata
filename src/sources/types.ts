@@ -12,7 +12,12 @@ export interface TwitterSource {
   /** Identifies the source in log messages. */
   readonly id: string;
 
-  getFeed(request?: GetFeedRequest): Promise<GetFeedResponse>;
+  /**
+   * Optional: without it SocialGata leaves the plugin out of the home feed and
+   * links its page to the plugin page instead. Nitter has no front page of its
+   * own, so the Nitter source has none (see `sources/nitter/index.ts`).
+   */
+  getFeed?(request?: GetFeedRequest): Promise<GetFeedResponse>;
   getUser(request: GetUserRequest): Promise<GetUserResponse>;
   getComments(request: GetCommentsRequest): Promise<GetCommentsResponse>;
   search(request: SearchRequest): Promise<SearchResponse>;

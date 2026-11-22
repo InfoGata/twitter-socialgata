@@ -26,7 +26,6 @@ const ACTIVE_SOURCE: TwitterSource = SOURCES.nitter;
 
 // Plugin Methods
 
-application.onGetFeed = (request) => ACTIVE_SOURCE.getFeed(request);
 application.onGetUser = (request) => ACTIVE_SOURCE.getUser(request);
 application.onGetComments = (request) => ACTIVE_SOURCE.getComments(request);
 application.onSearch = (request) => ACTIVE_SOURCE.search(request);
@@ -35,7 +34,11 @@ application.onGetPlatformType = async () => "microblog";
 // Registered only when the active source can serve them. SocialGata gates its
 // Trending button on `hasDefined.onGetTrendingTopics()`, so leaving these unset
 // hides the button instead of leading the reader to an empty page.
-const { getTrendingTopics, getTrendingTopicFeed } = ACTIVE_SOURCE;
+// The same goes for the feed: SocialGata checks `hasDefined.onGetFeed()`.
+const { getFeed, getTrendingTopics, getTrendingTopicFeed } = ACTIVE_SOURCE;
+if (getFeed) {
+  application.onGetFeed = (request) => getFeed.call(ACTIVE_SOURCE, request);
+}
 if (getTrendingTopics) {
   application.onGetTrendingTopics = (request) =>
     getTrendingTopics.call(ACTIVE_SOURCE, request);

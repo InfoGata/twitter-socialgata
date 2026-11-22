@@ -18,6 +18,10 @@ import { classifyPage } from "./parse";
  *   to try anywhere else.
  * - "User not found" counts once a second instance agrees (or none other
  *   answers), since an instance in a bad moment says it about real accounts.
+ * - "No items found" on a search is only believed once no other instance has
+ *   results either. An instance whose search breaks says it for every query:
+ *   nitter.netbub.com did from 2026-11-21, and taking it at its word left the
+ *   feed empty with no error.
  * - When everything fails, the error names each instance and why.
  */
 
@@ -154,6 +158,7 @@ export const fetchNitter = async (
 
   const attempts: Attempt[] = [];
   let notFound: { message: string; url: string; origin: string } | undefined;
+  let emptyPage: NitterPage | undefined;
 
   for (const instance of ordered) {
     const url = `${instance.origin}${path}`;
@@ -193,6 +198,13 @@ export const fetchNitter = async (
       continue;
     }
 
+    if (verdict.kind === "empty" && status !== 429) {
+      // Not benched: the query may really have no results. See the top of file.
+      emptyPage ??= { doc, instance, empty: true };
+      attempts.push({ host, reason: "no results", code: "not-found" });
+      continue;
+    }
+
     if (verdict.kind === "ok" || verdict.kind === "empty") {
       if (status === 429) {
         // Some instances render a normal page with a 429 when their own
@@ -205,7 +217,7 @@ export const fetchNitter = async (
       clearBench(instance.origin);
       // The instance that claimed "not found" was wrong.
       if (notFound) bench(notFound.origin);
-      return { doc, instance, empty: verdict.kind === "empty" };
+      return { doc, instance, empty: false };
     }
 
     bench(instance.origin);
@@ -226,6 +238,8 @@ export const fetchNitter = async (
 
   // Nobody else could check it, so the one answer stands.
   if (notFound) throw notFoundError(notFound.message, notFound.url);
+  // Every instance that answered agreed there was nothing.
+  if (emptyPage) return emptyPage;
 
   throw allFailed(path, attempts);
 };
